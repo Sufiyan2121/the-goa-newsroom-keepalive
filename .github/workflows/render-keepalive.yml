@@ -1,0 +1,21 @@
+name: Render Daemon Keepalive
+
+on:
+  schedule:
+    # Off-minute 8-minute cadence stays under Render's 15-minute idle window
+    # while avoiding top-of-hour runner queues (public repo = free unlimited minutes).
+    - cron: '4,12,20,28,36,44,52 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-healthz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Wake / Keep Alive Render Daemon
+        run: |
+          code=$(curl -sS -o /tmp/health.json -w "%{http_code}" --max-time 65 --retry 2 --retry-delay 5 https://the-goa-newsroom-daemon.onrender.com/healthz)
+          echo "HTTP status: $code"
+          cat /tmp/health.json
+          echo ""
+          test "$code" = "200"
